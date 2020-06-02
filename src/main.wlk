@@ -1,0 +1,52 @@
+import wollok.game.*
+
+object juego {
+	method configurate() {
+		game.title("Asteroid")
+		game.width(20)
+		game.height(15)
+		game.ground("blue.png")
+		
+
+	 	game.addVisual(nave)
+	 	movimiento.configurarFlechas(nave)
+	}
+	
+}
+
+object nave {
+	var property position = new Position(x = 0, y = 0)
+	
+	method image() = "playerShip1_green.png"
+}
+
+object movimiento {
+	
+	method configurarFlechas(visual){
+		keyboard.up().onPressDo{ self.mover(arriba,visual)}
+		keyboard.down().onPressDo{ self.mover(abajo,visual)}
+		keyboard.left().onPressDo{ self.mover(izquierda,visual)}
+		keyboard.right().onPressDo{ self.mover(derecha,visual)}
+   }
+	
+	method mover(direccion,personaje){
+		personaje.position(direccion.siguiente(personaje.position()))
+	}	
+	
+}
+
+object izquierda { 
+	method siguiente(position) = position.left(1) 
+}
+
+object derecha { 
+	method siguiente(position) = position.right(1) 
+}
+
+object abajo { 
+	method siguiente(position) = position.down(1) 
+}
+
+object arriba { 
+	method siguiente(position) = position.up(1) 
+}

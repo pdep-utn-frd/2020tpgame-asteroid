@@ -1,0 +1,7 @@
+import wollok.game.*
+import main.*
+
+program asteroid {
+	juego.configurate()
+	game.start()
+}
