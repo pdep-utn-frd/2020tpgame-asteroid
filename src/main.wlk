@@ -37,8 +37,9 @@ class Bala {
 	}
 	method destruiObjeto(objetos){
 		objetos.forEach{e => 
-			if (e.queSos() == 'asteroide' && game.hasVisual(e)){
+			if (e.queSos() == 'asteroide'){
 			game.removeVisual(e)
+			game.removeVisual(self)
 			}
 		}
 	}
@@ -49,7 +50,9 @@ class Bala {
 		game.onTick(20, 'disparo', {=>	
 			if (game.height() > self.position().y().abs()){	
 			 position =  self.position().up(1) 
+			 if (game.hasVisual(self)){
 			 self.destruiObjeto(game.colliders(self))
+			  }
 			 }  else {
 		game.removeTickEvent('disparo')
 		}	
