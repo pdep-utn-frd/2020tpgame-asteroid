@@ -2,7 +2,7 @@
 
 ## Juego realizado con la biblioteca Wollok Game
 
-![reemplazar por una animación del juego](https://drive.google.com/file/d/1pwWrtJ7i89aqMlF51U0yKR5sgk8uCOTP/view?usp=sharing)
+![](img/game_animation.gif)
 
 ### Resumen:
 
