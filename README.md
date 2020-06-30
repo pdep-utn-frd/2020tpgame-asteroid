@@ -24,9 +24,9 @@ El jugador utilizará las flechas de movimiento (arriba), (abajo), (izquierda) y
 - Tatiana Alvarez
 
 Docente/Curso/Institución:
-Lucas Spigariol
-Juan Bono
-Miguel Cames
+- Lucas Spigariol
+- Juan Bono
+- Miguel Cames
 
 Paradigmas de Programación
 
@@ -34,7 +34,4 @@ UTN Facultad Regional Delta
 
 Versión de wollok: 1.9.2
 
-Fecha:
-
-[Guía de herramientas](https://www.wollok.org/documentacion/conceptos/)
-
+Fecha: 30/06/2020
