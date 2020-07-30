@@ -1,22 +1,21 @@
 import wollok.game.*
 
-class Asteroide {
+class Asteroides {
 
 	const images = [ "asteroid.png", "asteroid_big1.png", "asteroid_medium3.png" ].anyOne()
 	var property position
 
-	method image() = images
+	method impactoBalaEnemiga(bala) {}
 
-	method queSos() {
-		return 'asteroide'
+	method impactoAsteroide() {}
+
+	method impactoBalaNave(bala) {
+		bala.desaparece()
+		self.desaparece()
 	}
 
 	method destruiObjetos(objetos) {
-		objetos.forEach{ e =>
-			if (e.queSos() == 'nave') {
-				e.actualizarVida(30)
-			}
-		}
+		objetos.forEach{ e => e.impactoAsteroide()}
 	}
 
 	method colision() {
@@ -24,6 +23,14 @@ class Asteroide {
 			self.destruiObjetos(game.colliders(self))
 		}
 	}
+
+	method desaparece() {
+		if (game.hasVisual(self)) {
+			game.removeVisual(self)
+		}
+	}
+
+	method image() = images
 
 	method avanza() {
 		if (game.height() > self.position().y().abs()) {
@@ -39,7 +46,7 @@ class Asteroide {
 		const y = game.height() - 1
 		position = game.at(x, y)
 		game.addVisual(self)
-		game.onTick(100, 'asteroid', {=> self.avanza()})
+		game.onTick(100, 'asteroid', { self.avanza()})
 	}
 
 }
@@ -48,11 +55,13 @@ class Bala {
 
 	var property position
 
-	method nombreEvento()
+	method impactoBalaEnemiga(bala) {}
+
+	method impactoAsteroide() {}
+
+	method impactoBalaNave(param) {}
 
 	method image()
-
-	method queSos() = 'bala'
 
 	method destruiObjetos(objetos)
 
@@ -62,12 +71,12 @@ class Bala {
 		}
 	}
 
-	method avanza(hacia) {
+	method avanza(hacia, evento) {
 		if (game.height() > self.position().y().abs()) {
 			position = hacia
 			self.colision()
 		} else {
-			game.removeTickEvent(self.nombreEvento())
+			game.removeTickEvent(evento)
 		}
 	}
 
@@ -81,50 +90,32 @@ class Bala {
 
 class BalaNave inherits Bala {
 
-	override method nombreEvento() = 'disparoNave'
-
 	override method image() = "lasery.png"
 
 	override method destruiObjetos(objetos) {
-		objetos.forEach{ e =>
-			if (e.queSos() == 'asteroide') {
-				game.removeVisual(e)
-				self.desaparece()
-			}
-			if (e.queSos() == 'enemigo') {
-				self.desaparece()
-				e.actualizarVida()
-			}
-		}
+		objetos.forEach{ e => e.impactoBalaNave(self)}
 	}
 
 	method disparar() {
 		position = nave.position().up(1)
 		game.addVisual(self)
-		game.onTick(20, self.nombreEvento(), {=> self.avanza(self.position().up(1))})
+		game.onTick(20, 'disparoNave', { self.avanza(self.position().up(1), 'disparoNave')})
 	}
 
 }
 
-class BalaEnemigo inherits Bala {
-
-	override method nombreEvento() = 'disparoEnemigo'
+class BalaEnemiga inherits Bala {
 
 	override method image() = "laser_enemy.png"
 
 	override method destruiObjetos(objetos) {
-		objetos.forEach{ e =>
-			if (e.queSos() == 'nave') {
-				self.desaparece()
-				e.actualizarVida(80)
-			}
-		}
+		objetos.forEach{ e => e.impactoBalaEnemiga(self)}
 	}
 
 	method disparar(desdeNaveEnemiga) {
 		self.position(desdeNaveEnemiga.position())
 		game.addVisual(self)
-		game.onTick(20, self.nombreEvento(), {=> self.avanza(self.position().down(1))})
+		game.onTick(20, 'disparoEnemigo', { self.avanza(self.position().down(1), 'disparoEnemigo')})
 	}
 
 }
@@ -142,15 +133,19 @@ object juego {
 		game.addVisualCharacter(nave)
 		nave.controles()
 		nave.vida(300)
-		game.onTick(1000, 'generarAsteroides', {=> new Asteroide().aparece()})
-		game.onTick(5000, 'generarEnemigo', {=> self.generarNuevoEnemigo()})
+		game.onTick(1000, 'generarAsteroides', { new Asteroides().aparece()})
+		game.onTick(5000, 'generarEnemigo', { self.generarNuevoEnemigo()})
 		const naveEnemiga = new Enemigo()
-		naveEnemiga.aparece()
+		naveEnemiga.config()
+	}
+
+	method matarEnemigo() {
+		self.enemigosVivos(self.enemigosVivos() - 1)
 	}
 
 	method generarNuevoEnemigo() {
 		if (enemigosVivos < 2) {
-			new Enemigo().aparece()
+			new Enemigo().config()
 			enemigosVivos += 1
 		}
 	}
@@ -158,6 +153,7 @@ object juego {
 	method gameOver() {
 		game.clear()
 		game.addVisual(gameOver)
+		self.enemigosVivos(1)
 		keyboard.enter().onPressDo{ self.configurate()}
 	}
 
@@ -176,15 +172,22 @@ object nave {
 	var property vida
 	var property position = game.center()
 
+	method image() = "nave.png"
+
+	method impactoBalaEnemiga(bala) {
+		self.actualizarVida(80)
+		bala.desaparece()
+	}
+
+	method impactoAsteroide() {
+		self.actualizarVida(30)
+	}
+
+	method impactoBalaNave(bala) {}
+
 	method nuevoDisparo() {
 		new BalaNave().disparar()
 	}
-
-	method queSos() {
-		return 'nave'
-	}
-
-	method image() = "nave.png"
 
 	method controles() {
 		keyboard.space().onPressDo{ self.nuevoDisparo()}
@@ -208,42 +211,48 @@ class Enemigo {
 
 	method image() = "enemy.png"
 
+	method impactoBalaEnemiga(bala) {}
+
+	method impactoAsteroide() {}
+
+	method impactoBalaNave(bala) {
+		self.actualizarVida()
+		bala.desaparece()
+	}
+
 	method actualizarVida() {
 		vida -= 80
 		if (vida > 0) {
 			game.say(self, 'vida: ' + self.vida().toString())
 		} else {
 			game.removeVisual(self)
-			juego.enemigosVivos(juego.enemigosVivos() - 1)
+			juego.matarEnemigo()
 		}
 	}
 
-	method aparece() {
+	method generarEnemigo() {
+		self.generarCoordenada()
+		self.puedoAparecerEn(position)
+	}
+
+	method config() {
+		game.onTick(800, 'disparar', { self.nuevoDisparo()})
+		game.onTick(1000, 'movete', { self.cambiaPosicion()})
+		self.generarEnemigo()
+	}
+
+	method generarCoordenada() {
 		const x = (0 .. game.width() - 2).anyOne()
 		const y = game.height() - 3
 		position = game.at(x, y)
-		self.puedoAparecerEn(position)
-		game.onTick(800, 'disparar', {=> self.nuevoDisparo()})
-		game.onTick(1000, 'movete', {=> self.cambiaPosicion()})
 	}
 
 	method puedoAparecerEn(posicion) {
 		if (game.getObjectsIn(posicion).size() == 0) {
 			game.addVisual(self)
 		} else {
-			self.cambiarCordenadas()
+			self.generarEnemigo()
 		}
-	}
-
-	method cambiarCordenadas() {
-		const x = (0 .. game.width() - 2).anyOne()
-		const y = game.height() - 3
-		position = game.at(x, y)
-		self.puedoAparecerEn(position)
-	}
-
-	method queSos() {
-		return 'enemigo'
 	}
 
 	method cambiaPosicion() {
@@ -265,7 +274,7 @@ class Enemigo {
 
 	method nuevoDisparo() {
 		if (game.hasVisual(self)) {
-			new BalaEnemigo().disparar(self)
+			new BalaEnemiga().disparar(self)
 		}
 	}
 
