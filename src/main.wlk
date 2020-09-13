@@ -1,28 +1,14 @@
 import wollok.game.*
 
-class Asteroides {
+class ElementosDelEspacio {
 
-	const images = [ "asteroid.png", "asteroid_big1.png", "asteroid_medium3.png" ].anyOne()
 	var property position
 
-	method impactoBalaEnemiga(bala) {}
+	method destruyeEnemigo() = false
 
-	method impactoAsteroide() {}
+	method destruyeJugador() = false
 
-	method impactoBalaNave(bala) {
-		bala.desaparece()
-		self.desaparece()
-	}
-
-	method destruiObjetos(objetos) {
-		objetos.forEach{ e => e.impactoAsteroide()}
-	}
-
-	method colision() {
-		if (game.hasVisual(self)) {
-			self.destruiObjetos(game.colliders(self))
-		}
-	}
+	method destruyeAsteroide() = false
 
 	method desaparece() {
 		if (game.hasVisual(self)) {
@@ -30,12 +16,21 @@ class Asteroides {
 		}
 	}
 
+}
+
+class Asteroides inherits ElementosDelEspacio {
+
+	const images = [ "asteroid.png", "asteroid_big1.png", "asteroid_medium3.png" ].anyOne()
+
+	method danio() = 30
+
+	override method destruyeJugador() = true
+
 	method image() = images
 
 	method avanza() {
 		if (game.height() > self.position().y().abs()) {
 			position = self.position().down(0.5)
-			self.colision()
 		} else {
 			game.removeTickEvent('asteroid')
 		}
@@ -47,42 +42,27 @@ class Asteroides {
 		position = game.at(x, y)
 		game.addVisual(self)
 		game.onTick(100, 'asteroid', { self.avanza()})
+		game.onCollideDo(self, { elemento =>
+			if (elemento.destruyeAsteroide()) { // disparos del jugador 
+				self.desaparece()
+				elemento.desaparece()
+			}
+		})
 	}
 
 }
 
-class Bala {
+class Bala inherits ElementosDelEspacio {
 
-	var property position
-
-	method impactoBalaEnemiga(bala) {}
-
-	method impactoAsteroide() {}
-
-	method impactoBalaNave(param) {}
+	method danio() = 40
 
 	method image()
-
-	method destruiObjetos(objetos)
-
-	method desaparece() {
-		if (game.hasVisual(self)) {
-			game.removeVisual(self)
-		}
-	}
 
 	method avanza(hacia, evento) {
 		if (game.height() > self.position().y().abs()) {
 			position = hacia
-			self.colision()
 		} else {
 			game.removeTickEvent(evento)
-		}
-	}
-
-	method colision() {
-		if (game.hasVisual(self)) {
-			self.destruiObjetos(game.colliders(self))
 		}
 	}
 
@@ -92,9 +72,9 @@ class BalaNave inherits Bala {
 
 	override method image() = "lasery.png"
 
-	override method destruiObjetos(objetos) {
-		objetos.forEach{ e => e.impactoBalaNave(self)}
-	}
+	override method destruyeEnemigo() = true
+
+	override method destruyeAsteroide() = true
 
 	method disparar() {
 		position = nave.position().up(1)
@@ -106,11 +86,11 @@ class BalaNave inherits Bala {
 
 class BalaEnemiga inherits Bala {
 
+	override method danio() = super() * 2
+
 	override method image() = "laser_enemy.png"
 
-	override method destruiObjetos(objetos) {
-		objetos.forEach{ e => e.impactoBalaEnemiga(self)}
-	}
+	override method destruyeJugador() = true
 
 	method disparar(desdeNaveEnemiga) {
 		self.position(desdeNaveEnemiga.position())
@@ -131,8 +111,15 @@ object juego {
 		game.height(15)
 		game.boardGround("background.jpeg")
 		game.addVisualCharacter(nave)
+		nave.position(game.center())
 		nave.controles()
 		nave.vida(300)
+		game.onCollideDo(nave, { elemento =>
+			if (elemento.destruyeJugador()) { // asteroides y disparos enemigos
+				nave.actualizarVida(elemento.danio())
+				elemento.desaparece()
+			}
+		})
 		game.onTick(1000, 'generarAsteroides', { new Asteroides().aparece()})
 		game.onTick(5000, 'generarEnemigo', { self.generarNuevoEnemigo()})
 		const naveEnemiga = new Enemigo()
@@ -167,23 +154,11 @@ object gameOver {
 
 }
 
-object nave {
+object nave inherits ElementosDelEspacio {
 
 	var property vida
-	var property position = game.center()
 
 	method image() = "nave.png"
-
-	method impactoBalaEnemiga(bala) {
-		self.actualizarVida(80)
-		bala.desaparece()
-	}
-
-	method impactoAsteroide() {
-		self.actualizarVida(30)
-	}
-
-	method impactoBalaNave(bala) {}
 
 	method nuevoDisparo() {
 		new BalaNave().disparar()
@@ -204,41 +179,46 @@ object nave {
 
 }
 
-class Enemigo {
+class Enemigo inherits ElementosDelEspacio {
 
 	var property vida = 600
-	var property position
 
 	method image() = "enemy.png"
 
-	method impactoBalaEnemiga(bala) {}
+	method estaMasALaDerechaQue(elemento) = elemento.position().x() > self.position().x()
 
-	method impactoAsteroide() {}
+	method estoyApuntandoA(elemento) = elemento.position().x() == self.position().x()
 
-	method impactoBalaNave(bala) {
-		self.actualizarVida()
-		bala.desaparece()
-	}
+	method puedoMoverme(direccion) = game.getObjectsIn(direccion).size() == 0
 
-	method actualizarVida() {
-		vida -= 80
+	method actualizarVida(cantidad) {
+		vida -= cantidad
 		if (vida > 0) {
 			game.say(self, 'vida: ' + self.vida().toString())
 		} else {
-			game.removeVisual(self)
+			self.desaparece()
 			juego.matarEnemigo()
 		}
+	}
+
+	method config() {
+		self.generarEnemigo()
+		game.onTick(800, 'disparar', { self.nuevoDisparo()})
+		game.onTick(1000, 'movete', { if (!self.estoyApuntandoA(nave)) {
+				self.cambiaPosicion()
+			}
+		})
+		game.onCollideDo(self, { elemento =>
+			if (elemento.destruyeEnemigo()) { // disparos del jugador
+				self.actualizarVida(elemento.danio())
+				elemento.desaparece()
+			}
+		})
 	}
 
 	method generarEnemigo() {
 		self.generarCoordenada()
 		self.puedoAparecerEn(position)
-	}
-
-	method config() {
-		game.onTick(800, 'disparar', { self.nuevoDisparo()})
-		game.onTick(1000, 'movete', { self.cambiaPosicion()})
-		self.generarEnemigo()
 	}
 
 	method generarCoordenada() {
@@ -255,21 +235,18 @@ class Enemigo {
 		}
 	}
 
-	method cambiaPosicion() {
-		if (nave.position().x() > self.position().x()) {
-			if (self.puedoMoverme(position.right(2))) {
-				self.position(position.right(1))
-			}
-		}
-		if (nave.position().x() < self.position().x()) {
-			if (self.puedoMoverme(position.left(2))) {
-				self.position(position.left(1))
-			}
+	method moverseHacia(posiciones) {
+		if (self.puedoMoverme(position.right(2 * posiciones))) {
+			self.position(position.right(posiciones))
 		}
 	}
 
-	method puedoMoverme(direccion) {
-		return game.getObjectsIn(direccion).size() == 0
+	method cambiaPosicion() {
+		self.moverseHacia(if (self.estaMasALaDerechaQue(nave)) {
+			1
+		} else {
+			-1
+		})
 	}
 
 	method nuevoDisparo() {
