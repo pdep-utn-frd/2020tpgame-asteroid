@@ -111,9 +111,9 @@ object juego {
 		game.height(15)
 		game.boardGround("background.jpeg")
 		game.addVisualCharacter(nave)
-		nave.position(game.center())
+		nave.position(game.at(6,0))
 		nave.controles()
-		nave.vida(300)
+		nave.vida(600)
 		game.onCollideDo(nave, { elemento =>
 			if (elemento.destruyeJugador()) { // asteroides y disparos enemigos
 				nave.actualizarVida(elemento.danio())
@@ -181,7 +181,7 @@ object nave inherits ElementosDelEspacio {
 
 class Enemigo inherits ElementosDelEspacio {
 
-	var property vida = 600
+	var property vida = 300
 
 	method image() = "enemy.png"
 
