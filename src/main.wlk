@@ -1,9 +1,9 @@
 import wollok.game.*
 
 class ElementosDelEspacio {
-	var property evento
-	var property image 
-	var property position
+	var property evento = null
+	var property image = null 
+	var property position = null
 
 	method desaparece() {
 		if (game.hasVisual(self)) {
@@ -103,10 +103,17 @@ object juego {
 		game.width(15)
 		game.height(15)
 		game.boardGround("background.jpeg")
+		nave.position(game.center())
+		nave.image('nave.png')
+		nave.controles()
 		game.addVisualCharacter(nave)
-		nave.config()
+		game.onCollideDo(nave, { elemento => // asteroides y disparos enemigos
+			elemento.chocasteALaNave()
+			nave.actualizarVida(elemento.danio())
+		})
 		game.onTick(1000, 'generarAsteroides', { new Asteroides().aparece()})
 		game.onTick(5000, 'generarEnemigo', { self.generarNuevoEnemigo()})
+//		nave.config()
 		new Enemigo().config()
 	}
 	method estaEnElTablero(ubicacion) = ubicacion.x().between(0,game.width()) && ubicacion.y().between(0,game.height())
@@ -146,7 +153,9 @@ object nave inherits ElementosDelEspacio {
 
 	method config() {
 		position = game.center()
+		image = 'nave.png'
 		self.controles()
+		game.addVisualCharacter(self)
 		game.onCollideDo(self, { elemento => // asteroides y disparos enemigos
 			elemento.chocasteALaNave()
 			self.actualizarVida(elemento.danio())
@@ -175,8 +184,7 @@ object nave inherits ElementosDelEspacio {
 class Enemigo inherits ElementosDelEspacio {
 
 	var property vida = 600
-	
-	var evento2 
+	const evento2 = 'movete'	
 	override method desaparece(){
 		super() 
 		game.removeTickEvent(evento2)
@@ -200,7 +208,7 @@ class Enemigo inherits ElementosDelEspacio {
 
 	method config() {
 		evento = 'disparar'
-		evento2 = 'movete'
+		image = "enemy.png"
 		self.generarEnemigo()
 		game.onTick(800, evento, { self.nuevoDisparo()})
 		game.onTick(1000, evento2, { if (!self.estoyApuntandoA(nave)) {
@@ -217,7 +225,7 @@ class Enemigo inherits ElementosDelEspacio {
 	method generarCoordenada() {
 		const x = (0 .. game.width() - 2).anyOne()
 		const y = game.height() - 3
-		position = game.at(x, y)
+		position =  game.at(x, y)
 	}
 
 	method puedoAparecerEn(posicion) {
