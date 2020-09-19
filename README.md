@@ -6,7 +6,7 @@
 
 ### Resumen:
 
-Este juego está basado en Space Invaders del año 1978. En esta aventura estamos al mando de una nave que se mueve en todas direcciones y debe enfrentarse a ordas de alienígenas invasores, que se reunen en la parte superior de la pantalla. Así mismo, nuestra nave también debe enfrentarse a peligrosos asteroides que aparecen de todos lados y en todos los tamaños.
+Este juego está inspirado en Asteroids de 1979 y en Space Invaders del año 1978. En esta aventura estamos al mando de una nave que se mueve en todas direcciones y debe enfrentarse a ordas de alienígenas invasores, que se reunen en la parte superior de la pantalla. Así mismo, nuestra nave también debe enfrentarse a peligrosos asteroides que aparecen de todos lados y en todos los tamaños.
 
 El objetivo de este juego es mover la nave espacial que esta bajo nuestro comando, para escapar de los ataques enemigos, y al mismo tiempo disparar para destruir cada una de las naves enemigas y asteroides.
 
