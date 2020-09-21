@@ -1,21 +1,20 @@
 import wollok.game.*
 
-class ElementosDelEspacio {
+class ElementoDelEspacio {
+
 	var property evento = null
-	var property image = null 
+	var property image = null
 	var property position = null
 
 	method desaparece() {
 		if (game.hasVisual(self)) {
-			game.removeVisual(self)
 			game.removeTickEvent(evento)
+			game.removeVisual(self)
 		}
 	}
-
 }
 
-class Asteroides inherits ElementosDelEspacio {
-
+class Asteroide inherits ElementoDelEspacio {
 
 	method danio() = 30
 
@@ -30,25 +29,29 @@ class Asteroides inherits ElementosDelEspacio {
 	method avanza() {
 		position = self.position().down(0.5)
 		if (!juego.estaEnElTablero(position)) {
-		self.desaparece()	
+			self.desaparece()
 		}
 	}
 
 	method aparece() {
-		evento = 'asteroid'
+		evento = juego.generarNombreEvento('asteroid')
 		image = [ "asteroid.png", "asteroid_big1.png", "asteroid_medium3.png" ].anyOne()
 		const x = (0 .. game.width() - 2).anyOne()
 		const y = game.height() - 1
 		position = game.at(x, y)
 		game.addVisual(self)
-		game.onTick(100,evento , { self.avanza()})
+		game.onTick(100, evento, { self.avanza()})
 	}
 
 }
 
-class Bala inherits ElementosDelEspacio {
-	
-	method impactoDeBala(param1){}
+class Bala inherits ElementoDelEspacio {
+
+	method impactoDeBala(param1) {
+	}
+
+	method chocasteALaNave() {
+	}
 
 	method danio() = 40
 
@@ -65,12 +68,12 @@ class Bala inherits ElementosDelEspacio {
 class BalaNave inherits Bala {
 
 	method disparar() {
-		evento = 'disparoNave'
+		evento = juego.generarNombreEvento('disparoNave')
 		image = "lasery.png"
 		position = nave.position().up(1)
 		game.addVisual(self)
 		game.onCollideDo(self, { elemento => elemento.impactoDeBala(self)})
-		game.onTick(20,evento , { self.avanza(self.position().up(1))})
+		game.onTick(20, evento, { self.avanza(self.position().up(1))})
 	}
 
 }
@@ -79,16 +82,16 @@ class BalaEnemiga inherits Bala {
 
 	override method danio() = super() * 2
 
-	method chocasteALaNave() {
+	override method chocasteALaNave() {
 		self.desaparece()
 	}
 
 	method disparar(naveEnemiga) {
-		evento = 'disparoEnemigo'
+		evento = juego.generarNombreEvento('disparoEnemigo')
 		image = "laser_enemy.png"
 		self.position(naveEnemiga.position().down(1))
 		game.addVisual(self)
-		game.onTick(20,evento , { self.avanza(self.position().down(1))})
+		game.onTick(20, evento, { self.avanza(self.position().down(1))})
 	}
 
 }
@@ -96,28 +99,26 @@ class BalaEnemiga inherits Bala {
 object juego {
 
 	var property enemigosVivos = 1
+	var contadorEventos = 1000000
 
 	method configurate() {
 		game.clear()
-		game.title("Asteroid")
+		game.title("Asteroids")
 		game.width(15)
 		game.height(15)
 		game.boardGround("background.jpeg")
-		nave.position(game.center())
-		nave.image('nave.png')
-		nave.controles()
-		game.addVisualCharacter(nave)
-		game.onCollideDo(nave, { elemento => // asteroides y disparos enemigos
-			elemento.chocasteALaNave()
-			nave.actualizarVida(elemento.danio())
-		})
-		game.onTick(1000, 'generarAsteroides', { new Asteroides().aparece()})
+		game.onTick(1000, 'generarAsteroide', { new Asteroide().aparece()})
 		game.onTick(5000, 'generarEnemigo', { self.generarNuevoEnemigo()})
-//		nave.config()
+		nave.config()
 		new Enemigo().config()
 	}
-	method estaEnElTablero(ubicacion) = ubicacion.x().between(0,game.width()) && ubicacion.y().between(0,game.height())
-	
+
+	method estaEnElTablero(ubicacion) = ubicacion.x().between(0, game.width()) && ubicacion.y().between(-5, game.height())
+
+	method generarNombreEvento(subfijo) {
+		contadorEventos += 1
+		return contadorEventos.toString() + subfijo
+	}
 
 	method matarEnemigo() {
 		enemigosVivos -= 1
@@ -147,16 +148,20 @@ object gameOver {
 
 }
 
-object nave inherits ElementosDelEspacio {
+object nave inherits ElementoDelEspacio {
 
-	var property vida = 3000
+	var property vida
+
+	method impactoDeBala(bala) {
+	}
 
 	method config() {
 		position = game.center()
 		image = 'nave.png'
+		vida = 500
 		self.controles()
 		game.addVisualCharacter(self)
-		game.onCollideDo(self, { elemento => // asteroides y disparos enemigos
+		game.onCollideDo(self, { elemento => // Asteroide y disparos enemigos
 			elemento.chocasteALaNave()
 			self.actualizarVida(elemento.danio())
 		})
@@ -181,14 +186,22 @@ object nave inherits ElementosDelEspacio {
 
 }
 
-class Enemigo inherits ElementosDelEspacio {
+class Enemigo inherits ElementoDelEspacio {
 
 	var property vida = 600
-	const evento2 = 'movete'	
-	override method desaparece(){
-		super() 
-		game.removeTickEvent(evento2)
+	const evento2 = juego.generarNombreEvento('movete')
+
+	override method desaparece() {
+		if (game.hasVisual(self)) {
+			game.removeTickEvent(evento)
+			game.removeTickEvent(evento2)
+			game.removeVisual(self)
+		}
 	}
+	
+	method danio() = nave.vida()
+	
+	method chocasteALaNave() {}
 
 	method estaMasALaDerechaQue(elemento) = elemento.position().x() > self.position().x()
 
@@ -207,7 +220,7 @@ class Enemigo inherits ElementosDelEspacio {
 	}
 
 	method config() {
-		evento = 'disparar'
+		evento = juego.generarNombreEvento('disparar')
 		image = "enemy.png"
 		self.generarEnemigo()
 		game.onTick(800, evento, { self.nuevoDisparo()})
@@ -218,18 +231,18 @@ class Enemigo inherits ElementosDelEspacio {
 	}
 
 	method generarEnemigo() {
-		self.generarCoordenada()
-		self.puedoAparecerEn(position)
+		self.puedoAparecerEn(self.generarCoordenada())
 	}
 
 	method generarCoordenada() {
 		const x = (0 .. game.width() - 2).anyOne()
 		const y = game.height() - 3
-		position =  game.at(x, y)
+		return game.at(x, y)
 	}
 
-	method puedoAparecerEn(posicion) {
-		if (game.getObjectsIn(posicion).size() == 0) {
+	method puedoAparecerEn(coordenadas) {
+		if (game.getObjectsIn(coordenadas).size() == 0) {
+			position = coordenadas
 			game.addVisual(self)
 		} else {
 			self.generarEnemigo()
